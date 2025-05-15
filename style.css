@@ -94,13 +94,9 @@ body {
 
             .videoCard {
                 width: 100%;
-                min-width: 280px;
+                min-width: 278px;
                 height: 100%;
                 position: relative;
-
-                @media screen and (max-width: 768px) {
-                    max-width: 100%;
-                }
 
                 .progress-bar {
                     position: absolute;

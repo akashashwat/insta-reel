@@ -3,11 +3,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const videoCards = document.querySelectorAll('.videoCard');
     const creatorReels = document.querySelector('.creatorReels');
     const creatorProfile = document.querySelector('.creatorProfile');
-
+    
     let currentVideoIndex = 0; // Track the currently playing video
     let isPlaying = false; // Flag to track if a video is currently starting playback
     let isTransitioning = false; // Flag to prevent updates during creator transitions
     let progressInterval = null; // Track the progress bar interval
+
+    // Set preload="metadata" for the first video to reduce initial load delay
+    videoCards[0].querySelector('video').setAttribute('preload', 'metadata');
 
     // Debounce function to limit the rate of scroll event handling
     function debounce(func, wait) {
@@ -16,6 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(timeout);
             timeout = setTimeout(() => func.apply(this, args), wait);
         };
+    }
+
+    // Function to preload the next video
+    function preloadNextVideo(currentIndex) {
+        const nextIndex = (currentIndex + 1) % videoCards.length; // Loop back to 0 if at the end
+        const nextVideo = videoCards[nextIndex].querySelector('video');
+        if (nextVideo && nextVideo.getAttribute('preload') !== 'metadata') {
+            nextVideo.setAttribute('preload', 'metadata');
+            nextVideo.load(); // Start loading metadata for the next video
+        }
     }
 
     // Function to pause all videos except the one at the given index
@@ -28,6 +41,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     await video.pause(); // Ensure pause completes
                     video.currentTime = 0;
                     progressBar.style.width = '0%';
+                    // Reset the poster image to ensure it's visible
+                    video.setAttribute('poster', video.getAttribute('data-poster'));
                 }
             }
         }
@@ -81,6 +96,14 @@ document.addEventListener('DOMContentLoaded', () => {
             video.currentTime = 0;
             progressBar.style.width = '0%'; // Ensure progress bar starts at 0
 
+            // Wait for the video to have enough data to play (reduces blank space on iOS)
+            if (!video.readyState >= 2) { // HAVE_CURRENT_DATA or higher
+                await new Promise(resolve => {
+                    video.addEventListener('loadeddata', resolve, { once: true });
+                    video.load(); // Ensure the video starts loading
+                });
+            }
+
             // Play the video and wait for the play promise to resolve
             await video.play();
 
@@ -89,6 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Start updating the progress bar
             updateProgressBar(video, progressBar);
+
+            // Preload the next video to reduce delay when switching
+            preloadNextVideo(index);
 
         } catch (error) {
             console.error('Error playing video:', error);
