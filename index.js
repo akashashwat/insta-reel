@@ -3,14 +3,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const videoCards = document.querySelectorAll('.videoCard');
     const creatorReels = document.querySelector('.creatorReels');
     const creatorProfile = document.querySelector('.creatorProfile');
-    
+
     let currentVideoIndex = 0; // Track the currently playing video
     let isPlaying = false; // Flag to track if a video is currently starting playback
     let isTransitioning = false; // Flag to prevent updates during creator transitions
     let progressInterval = null; // Track the progress bar interval
 
-    // Set preload="metadata" for the first video to reduce initial load delay
-    videoCards[0].querySelector('video').setAttribute('preload', 'metadata');
 
     // Debounce function to limit the rate of scroll event handling
     function debounce(func, wait) {
@@ -23,11 +21,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to preload the next video
     function preloadNextVideo(currentIndex) {
-        const nextIndex = (currentIndex + 1) % videoCards.length; // Loop back to 0 if at the end
-        const nextVideo = videoCards[nextIndex].querySelector('video');
-        if (nextVideo && nextVideo.getAttribute('preload') !== 'metadata') {
-            nextVideo.setAttribute('preload', 'metadata');
-            nextVideo.load(); // Start loading metadata for the next video
+        const nextIndex = (currentIndex + 1) % videoCards.length;
+        const nextCard = videoCards[nextIndex];
+        const nextVideo = nextCard.querySelector('video');
+        const nextSource = nextVideo.querySelector('source');
+
+        if (!nextVideo.dataset.loaded) {
+            nextVideo.poster = nextVideo.dataset.poster;
+            nextSource.src = nextSource.dataset.src;
+            nextVideo.load();
+            nextVideo.dataset.loaded = 'true';
         }
     }
 
@@ -89,7 +92,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // Pause all other videos
             await pauseAllVideos(index);
 
-            const video = videoCards[index].querySelector('video');
+            const videoCard = videoCards[index];
+            const video = videoCard.querySelector('video');
+            const source = video.querySelector('source');
+
+            // Lazy-load poster and video source
+            if (!video.dataset.loaded) {
+                video.poster = video.dataset.poster;
+                source.src = source.dataset.src;
+                video.load();
+                video.dataset.loaded = 'true';
+            }
             const progressBar = videoCards[index].querySelector('.progress-bar span');
 
             // Reset video state
